@@ -1,0 +1,122 @@
+---
+title: virt-install 实践
+notebook: linux
+tags:
+---
+
+virt-install 使用
+
+使用virt-install 参数说明
+Minimum requirements are --name, --memory, guest storage (--disk or --filesystem), and an install option.
+
+选项分几类：
+general options :全局选项  适用于全部类型虚机安装的选项 内存，cpu，架构
+installation options：安装选项 安装源的指定 cd，location，pxe，import，livecd
+storage options:
+networking options:
+graphic options:
+virtualization options:
+device options:
+MISCELLANEOUS OPTIONS
+
+
+
+安装选项：
+安装源指定
+--cdrom 磁盘路径或url
+
+--location 在线镜像链接
+
+--pxe 使用pxe安装
+
+--import 
+Skip the OS installation process, and build a guest around an existing disk image. The device used for booting is the first device specified via "--disk" or "--filesystem".
+跳过安装过程，使用一个存在的磁盘镜像， 设备用作为虚机启动的第一个设备 使用--disk --filesystem 指定
+当使用一个已存在镜像，比如qcow2，raw 此项为空，用--disk指定镜像路径即可
+如： virt-install  --name hehe --memory 512 --disk /home/centos7.qcow2 --import
+
+
+使用上条命令直接安装成功，并且自动关联到br0网桥上
+
+
+
+## 磁盘选项详解：
+参数格式：
+	(第一块磁盘）--disk opt1=val1,opt2=val2,... （第二块磁盘）--disk size=20 sparse=yes
+
+例：创建多块磁盘
+ virt-install --name swift-storage-151 --memory 2048 --vcpus 4  --disk /home/xyz/instance/storage-151.qcow2 --import  --disk sparse=yes,size=30  --disk sparse=yes,size=30  --network bridge=br-manager,virtualport_type="openvswitch"
+
+## 网络部分选项：
+不指定网络选项时，如果宿主机已有网桥并有物理网卡挂载，会默认挂载在往桥上
+如果是ovs网桥，需要增加virtualport_type="openvswitch" 参数
+
+virt-install  --name test --vcpus 4 --memory 4096 --disk /home/xyz/swift-temp.qcow2  --import  --network bridge=br-manager,virtualport_type="openvswitch"
+
+需要多块网卡时，重复指定network选项
+virt-install  --name test2 --vcpus 4 --memory 4096 --disk /home/xyz/test.qcow2  --import  --network bridge=br-manager,virtualport_type="openvswitch" --network bridge=br-manager,virtualport_type="openvswitch"
+
+
+virt-clone工具可以克隆虚机
+
+
+## 使用virsh创建快照
+virsh snapshot-create vm名称
+virsh snapshot-revert vm名称 状态名
+virsh snapshot-create-as 64 hehe 可以给镜像指定名称
+测试镜像会保存包括附加磁盘的状态
+
+
+
+virt-install  --name openstack-ascencloud --vcpus 30 --memory 10240 --disk /home/xyz/images/test-kolla-ansible-init.qcow2  --import  --network bridge=br-manager,virtualport_type="openvswitch"  --network bridge=docker0 --wait 0
+
+## 创建磁盘
+qemu-img create -f qcow2 /tmp/trusty.qcow2 10G
+## DVD安装虚拟机
+virt-install --virt-type kvm --name lisong --vcpu 10 --ram 5000 \
+  --cdrom=/home/lisong/CentOS-7-x86_64-DVD-151209.iso \
+  --disk /home/lisong/lisong.qcow2,format=qcow2,size=40 \
+  --network bridge=br-manager,virtualport_type="openvswitch" \
+  --graphics vnc,listen=0.0.0.0 --noautoconsole \
+  --os-type=linux --input tablet 
+
+  --input tablet is important to use mounse input
+## pxe安装虚拟机 
+virt-install --virt-type kvm --name kolla-controller-origin --vcpu 20 --ram 15000 \
+  --pxe  --disk /home/xyz/images/kolla-controller-origin.qcow2,format=qcow2,size=80 \
+  --network bridge=br-manager,virtualport_type="openvswitch" \
+  --graphics vnc,listen=0.0.0.0  --noautoconsole\
+  --os-type=linux 
+
+virt-install --virt-type kvm --name test --vcpu 22 --ram 8024 \
+  --pxe  --disk /var/lib/kvm/controller-origin.qcow2,format=qcow2,size=20  --disk sparse=yes,size=30\
+  --network bridge=br-manager,virtualport_type="openvswitch" \
+  --network bridge=br-service,virtualport_type="openvswitch" \
+  --network bridge=ceph-cluster-ne \z
+  --graphics vnc,listen=0.0.0.0  --noautoconsole\
+  --os-type=linux 
+
+连续两次进入pxe启动的方式，修改xml文件中的os参数将hd替换为network
+
+## vnc
+使用tightVNC viewer客户端
+使用ps aux | grep 虚机名称查看vnc端口号 59+端口号
+
+
+
+## virt-clone 
+virt-clone 
+
+-o 源虚机
+-n 目标虚机名称 
+--auto-clone 自动生成
+
+virt-clone -o source_vm  -n new_vm --auto-clone
+virt-clone -o kolla --connect qemu+ssh://192.168.6.36/system   -n new-kolla --auto-clone 执行远程克隆 注意连接使用qemu+ssh协议
+
+virt-install --virt-type kvm --name test --vcpu 22 --ram 1024 \
+  --pxe  --disk /home/test.qcow2,format=qcow2,size=20 \
+  --network bridge=docker0 \
+  --graphics vnc,listen=0.0.0.0  --noautoconsole\
+  --os-type=linux
+

@@ -1,0 +1,114 @@
+202.120.2.101
+
+
+
+refresh front_pkg
+IP=192.168.6.37; ssh root@$IP  ls /home/front_pkgs/ || ssh root@$IP  mkdir /home/front_pkgs/ ; ssh root@$IP rm /home/front_pkgs/* -f
+
+scp *.rpm root@$IP:/home/front_pkgs/
+
+ssh root@$IP 'rpm -evh openstack-trove-ui;rpm -evh openstack-dashboard;rpm -evh python-django-horizon'
+
+ssh root@$IP 'cd /home/front_pkgs/ ;rpm -ivh ./python-django-horizon*;rpm -ivh ./openstack-dashboard*;rpm -ivh openstack-trove-ui*'
+
+ssh root@$IP 'systemctl restart httpd'
+
+
+
+
+
+
+add license:
+
+sn=$(python tools/generate_server_sn.py)
+sed -i "s/ascencloud_sn=.*/ascencloud_sn=$sn/g" license.ini
+bash create_license.sh
+cp publish/* /etc/license/
+license-db-manage import_license -f /etc/license/license -k /etc/license/public_key.pem
+
+
+上传镜像：
+image=centos7
+qemu-img convert -O raw $image.qcow2 $image.raw
+source /root/keystonerc_admin;glance image-create --name $image --disk-format raw --container-format bare --file $image.raw --visibility public --progress
+
+
+glance image-create --name tomcat --disk-format qcow2 --container-format bare --file /home/tomcat.qcow2 --visibility public --progress
+
+
+
+重启haproxy
+ip netns exec lb bash
+kill -9 $(ps aux | grep hapro | grep -v grep | awk '{print $2}') ; haproxy -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid -D
+exit
+
+for i in $(ps aux | grep wsgi | grep -v grep | awk '{print $2}') ;do kill -9 $i;done
+for i in $(ps aux | grep http | grep -v grep | awk '{print $2}') ;do kill -9 $i;done
+扩展脚本 /etc/hosts vip设置有问题
+
+
+
+ nova reset-state 6752b96b-0bc9-4076-ac44-3000e3345aa6  --active
+
+ docker login -u admin -p Harbor12345 http://192.168.6.60:80
+
+cookie=0xbd536fc36f67adb0, duration=883040.446s, table=20, n_packets=0, n_bytes=0, hard_timeout=300, idle_age=65534, hard_age=1, priority=1,vlan_tci=0x0001/0x0fff,dl_dst=fa:16:3e:2a:83:d2 actions=load:0->NXM_OF_VLAN_TCI[],load:0x1392->NXM_NX_TUN_ID[],output:3
+
+
+"/usr/bin/mysqld_safe --skip-grant-tables&",
+
+
+TOKEN=`source /root/keystonerc_admin; openstack token issue  |grep " id " |awk  -F '|'  '{print $3}'`
+        curl -X 'GET' -H "X-Auth-Token:$TOKEN" -H 'Content-type: application/json' -v  http://192.168.6.54:9002/v1/operatelog
+
+
+Hbc6T^92d7I0
+
+ascencloud-host-agent.service ascencloud-host-conductor.service ascencloud-license-agent.service ascencloud-license-conductor.service ascencloud-timer-agent.service 
+
+
+export PYTHONPATH="/home/xyz/new-kolla-build/.tox/genconfig/bin/:/home/xyz/new-kolla-build/.tox/genconfig/lib/python2.7/site-packages/:/home/xyz/new-kolla-build/.tox/genconfig/lib64/python2.7/site-packages/"
+
+阿里yum源添加
+wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo \
+&& wget -O /etc/yum.repos.d/epel.repo http://mirrors.aliyun.com/repo/epel-7.repo \
+&& wget -O /etc/yum.repos.d/docker-ce https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+
+
+修改镜像yum源
+cd /opt/cloudboot/home/www/centos/7.2/os/x86_64/repodata
+rm  -f !(d95f757acef3b099ce930e31b69b70152beeaa455d972d885f5ee1cbae11e0c2-c7-x86_64-comps.xml|repomd.xml) 
+cd ../
+createrepo -g repodata/d95f757acef3b099ce930e31b69b70152beeaa455d972d885f5ee1cbae11e0c2-c7-x86_64-comps.xml  ./
+sha256sum repodata/repomd.xml
+
+https://www.cloudbase.it/downloads/CloudbaseInitSetup_Stable_x64.msi
+
+http://idea.liyang.io
+
+
+ceph auth get-or-create client.nova mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rwx pool=images, allow rwx pool=volumes-ssd'
+
+[root@compute-192-168-21-11 ~]# ceph auth get-or-create client.nova mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rwx pool=images, allow rwx pool=volumes-ssd'
+[client.nova]
+        key = AQD2u9Za8iM0BBAA3zOLJpoJ6d5Dt07uRqG7PA==
+
+
+
+qemu-kvm: -chardev pty,id=charserial0,logfile=/var/lib/nova/instances/d484acc2-2c07-426b-b662-015df58e0eee/console.log,logappend=off: char device redirected to /dev/pts/4 (label charserial0)
+2018-04-18T06:36:34.286570Z qemu-kvm: 
+-drive file=rbd:vms/d484acc2-2c07-426b-b662-015df58e0eee_disk:id=nova:auth_supported=cephx\;
+none:mon_host=192.168.21.11\:6789\;192.168.21.21\:6789\;192.168.21.31\:6789,
+file.password-secret=virtio-disk0-secret0,
+format=raw,
+if=none,
+id=drive-virtio-disk0,
+cache=writeback: 
+
+error connecting: Operation not supported
+
+
+
+docker run  -e HARBOR_USERNAME="admin"  -e HARBOR_PASSWORD="Harbor12345"  -e HARBOR_URL="http://192.168.6.60"  -e HARBOR_PROJECT="kolla"   --net host --rm krystism/harborclient harbor user-list
+
+docker run -it -e KOLLA_CONFIG_STRATEGY="COPY_ALWAYS" -e KOLLA_BOOTSTRAP=''    -v /etc/kolla/charge-api/:/var/lib/kolla/config_files/:ro -v /etc/localtime:/etc/localtime:ro -v kolla_logs:/var/log/kolla  311a808e1ddd  bash
